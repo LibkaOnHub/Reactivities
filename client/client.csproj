@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <BuildProject>false</BuildProject>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Optional: include key files to show -->
+    <None Include="**\*" />
+  </ItemGroup>
+
+</Project>
