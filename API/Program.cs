@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Application.Activities.Queries;
+using Application.Core;
+using Microsoft.EntityFrameworkCore;
 using Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,7 +16,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssemblyContaining<GetActivityList.Handler>() // MediatR bude hledat handlery naší třídě
+);
+
 builder.Services.AddSwaggerGen(); // Required for Swagger
+
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfiles>()); // profil k auto mapperu
 
 var app = builder.Build();
 
@@ -55,7 +63,7 @@ try
     await appDbContext.Database.MigrateAsync();
 
     // naplní prázdnou databázi testovacími daty
-    await DbInitializer.SeedData(appDbContext); 
+    await DbInitializer.SeedData(appDbContext);
 
 }
 catch (Exception)
