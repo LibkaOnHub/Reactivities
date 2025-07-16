@@ -1,9 +1,9 @@
 ﻿import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
+import './app/layout/styles.css'
 
 // načtení modulu s hlavní komponetou
-import App from './App.tsx'
+import App from './app/layout/App.tsx'
 
 // font pro Material UI
 import '@fontsource/roboto/300.css';
