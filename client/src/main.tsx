@@ -10,10 +10,24 @@ import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
+// klient pro React query
+const queryClient = new QueryClient();
 
 // vložení hlavní komponenty do HTML prvku root
+// a App komponenta bude umístěna v React Query (QueryClientProvider)
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+    <StrictMode>
+
+        <QueryClientProvider client={queryClient}>
+
+            <ReactQueryDevtools />
+
+            <App />
+
+        </QueryClientProvider>
+
+    </StrictMode>
 )

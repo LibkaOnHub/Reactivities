@@ -1,17 +1,25 @@
-﻿ import { Box, Button, Paper, TextField, Typography } from "@mui/material";
+﻿import { Box, Button, Paper, TextField, Typography } from "@mui/material";
 import type { FormEvent } from "react";
+import { useActivities } from "../../../lib/hooks/useActivities";
+import { v4 as uuidv4 } from 'uuid';
 
 type Props = {
-    activity?: Activity;
+    selectedActivity?: Activity;
     closeForm: () => void
-    submitForm: (activity: Activity) => void
 }
 
-export function ActivityForm({ activity, closeForm, submitForm }: Props) {
+export function ActivityForm({ selectedActivity, closeForm }: Props) {
 
-    console.log(`ActivityForm loaded with activity.id ${activity?.id}`)
+    console.log(`ActivityForm loaded with activity.id ${selectedActivity?.id}`)
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    // pomocí hook useActivities získáme aktuální aktivity, resp. zvolenou a objekty na mutaci
+    const { activities, isPending, updateActivityTool, createActivityTool } = useActivities();
+
+    const activity = activities?.find(item => item.id === selectedActivity?.id)
+
+    if (isPending) return <Typography>Loading...</Typography>
+
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         console.log(`handle submit called with activity.id: ${activity?.id}`);
         console.log(event)
 
@@ -21,7 +29,7 @@ export function ActivityForm({ activity, closeForm, submitForm }: Props) {
         const formData = new FormData(event.currentTarget);
 
         let activityFromForm: Activity = {
-            id: activity?.id ?? "",
+            id: activity?.id ?? uuidv4(),
             title: formData.get("title") as string,
             description: formData.get("description") as string,
             category: formData.get("category") as string,
@@ -32,12 +40,24 @@ export function ActivityForm({ activity, closeForm, submitForm }: Props) {
             longitude: 0,
             isCancelled: false
         };
-      
+
         console.log("activity from form:");
         console.log(activityFromForm);
 
-        // zavoláme funkci na zpracování dat z formuláře
-        submitForm(activityFromForm); // ze slovníku polí formuláře musíme udělat typ Activity
+        if (activity) {
+            // zavoláme hook s React Query a spustíme mutaci (HTTP PUT)
+            await updateActivityTool.mutateAsync(activityFromForm);
+
+            // zavoláme funkci v App komponentě na změnu stavu editace
+            closeForm();
+        }
+        else {
+            // zavoláme hook s React Query a spustíme mutaci (HTTP POST)
+            await createActivityTool.mutateAsync(activityFromForm);
+
+            // zavoláme funkci v App komponentě na změnu stavu editace
+            closeForm();
+        }
     }
 
     return (
@@ -61,7 +81,15 @@ export function ActivityForm({ activity, closeForm, submitForm }: Props) {
 
                 <TextField name="category" label="Category" defaultValue={activity?.category} />
 
-                <TextField name="date" label="Date" type="date" defaultValue={activity?.date} />
+                <TextField name="date"
+                    label="Date"
+                    type="date"
+                    defaultValue={
+                        activity?.date
+                            ? new Date(activity.date).toISOString().split("T")[0]
+                            : new Date().toISOString().split('T')[0]
+                    }
+                />
 
                 <TextField name="city" label="City" defaultValue={activity?.city} />
 
@@ -80,6 +108,7 @@ export function ActivityForm({ activity, closeForm, submitForm }: Props) {
                         type="submit"
                         color="success"
                         variant="contained"
+                        disabled={updateActivityTool.isPending || createActivityTool.isPending}
                     >
                         Submit
                     </Button>

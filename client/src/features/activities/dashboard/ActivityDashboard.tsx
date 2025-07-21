@@ -13,15 +13,13 @@ interface Props {
 
     selectedActivity: Activity | undefined; // undefined můžeme nahradit otazníkem za proměnnou
 
-    openForm: (id: string) => void;
+    openForm: (id?: string) => void;
     closeForm: () => void;
     editMode: boolean;
-    submitForm: (activity: Activity) => void
-    deleteActivity: (id: string) => void
 }
 
 export default function ActivityDashboard({ activities, selectActivity, cancelSelectActivity, selectedActivity,
-    openForm, closeForm, editMode, submitForm, deleteActivity }: Props) {
+    openForm, closeForm, editMode }: Props) {
 
     // MUI i Bootstrap grid mají 12 sloupců
 
@@ -35,7 +33,6 @@ export default function ActivityDashboard({ activities, selectActivity, cancelSe
                 <ActivityList
                     activities={activities}
                     selectActivity={selectActivity}
-                    deleteActivity={deleteActivity}
                 />
 
             </Grid>
@@ -47,7 +44,7 @@ export default function ActivityDashboard({ activities, selectActivity, cancelSe
                     && !editMode
                     &&
                     <ActivityDetail
-                        activity={selectedActivity}
+                        selectedActivity={selectedActivity}
                         cancelSelectedActivity={cancelSelectActivity}
                         openForm={openForm}
                     />
@@ -57,9 +54,8 @@ export default function ActivityDashboard({ activities, selectActivity, cancelSe
                     editMode
                     &&
                     <ActivityForm
-                        activity={selectedActivity}
+                        selectedActivity={selectedActivity}
                         closeForm={closeForm}
-                        submitForm={submitForm}
                     />
                 }
 
