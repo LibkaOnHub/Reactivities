@@ -1,21 +1,20 @@
 ﻿import { Button, Card, CardActions, CardContent, CardMedia, Typography } from "@mui/material";
 import { useActivities } from "../../../lib/hooks/useActivities";
+import { NavLink, useParams } from "react-router";
 
-type Props = {
-    selectedActivity: Activity;
-    cancelSelectedActivity: () => void;
+export default function ActivityDetail() {
 
-    openForm: (id: string) => void;
-}
+    // zjistíme id z query string
+    const { id } = useParams();
 
-export default function ActivityDetail({ selectedActivity, cancelSelectedActivity, openForm }: Props) {
+    console.log(`ActivityDetail opened with id from query string: ${id}`);
 
-    // získáme aktuální stav zvolené aktivity z React Query
+    // získáme aktivitu dle id z React Query
+    const { activity, activityPending} = useActivities(id);
 
-    const { activities } = useActivities(); // hook vrací více vlastností
-    const activity = activities?.find(item => item.id === selectedActivity.id);
+    if (activityPending) return <Typography>Loading...</Typography>
 
-    if (!activity) return <Typography>Loading...</Typography>
+    if (!activity) return <Typography>Activity not found</Typography>
 
     return (
         <Card sx={{ borderRadius: 3 }}>
@@ -44,15 +43,17 @@ export default function ActivityDetail({ selectedActivity, cancelSelectedActivit
             <CardActions>
 
                 <Button
+                    component={NavLink}
+                    to={`/manage/${activity.id}`}
                     color="primary"
-                    onClick={() => openForm(activity.id)}
                 >
                     Edit
                 </Button>
 
                 <Button
+                    component={NavLink}
+                    to="/activities"
                     color="inherit"
-                    onClick={() => cancelSelectedActivity()}
                 >
                     Cancel
                 </Button>

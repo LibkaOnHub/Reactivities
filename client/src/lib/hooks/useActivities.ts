@@ -3,30 +3,45 @@ import agent from "../api/agent";
 
 // hook bude vlastně exportovaná funkce (pouze TS) vracející několik proměnných (výsledek GET a mutation tool)
 
-export const useActivities = () => {
-    console.log("useActivities hook using React Query was called");
+export const useActivities = (id?: string) => {
+    console.log(`useActivities hook using React Query was called with id: ${id}`);
 
     // funkce useActivities:
     // - vrátí proměnnou se seznamem aktivit (HTTP GET)
+    // - vrátí proměnnou s jednou aktivitou dle id
     // - vrátí proměnnou s "mutation tool" objektem na provedení update (HTTP PUT)
     // - vrátí proměnnou s "mutation tool" objektem na provedení create (HTTP POST)
 
-
-    // získání dat z API a nastavení globálního stavu pomocí React Query funkce useQuery
-    const { data: activities, isPending } = useQuery( // z výsledku volání uložíme vybrané vlastnosti
+    // získání dat o všech aktivitách z API pomocí React Query funkce useQuery
+    const { data: activities, isPending: activitiesPending } = useQuery( // z výsledku volání uložíme vybrané vlastnosti
         // konfigurace query
         {
             // uložení dat
-            queryKey: ['activities'],
+            queryKey: ["activities"],
 
             // funkce pro získání dat z API
             queryFn: async () => {
 
                 // použijeme sdílenou funkci agent, která vytvoří instanci klient, nastaví vých. adresu a interceptor
-                const response = await agent.get<Activity[]>('/activities'); // HTTP GET
+                const response = await agent.get<Activity[]>("/activities"); // HTTP GET
 
                 return response.data;
             }
+        }
+    );
+
+    // získání dat o jedné aktivitě z API pomocí React Query funkce useQuery
+    const { data: activity, isPending: activityPending } = useQuery(
+        {
+            queryKey: ["activities", id],
+
+            queryFn: async () => {
+                const response = await agent.get<Activity>(`/activities/${id}`); // HTTP GET s id
+
+                return response.data;
+            },
+
+            enabled: !!id
         }
     );
 
@@ -58,7 +73,9 @@ export const useActivities = () => {
         {
             // funkce zajišťující vytvoření aktivity
             mutationFn: async (activity: Activity) => {
-                await agent.post("/activities", activity) // HTTP POST
+                const response = await agent.post("/activities", activity) // HTTP POST
+
+                return response.data
             },
 
             onSuccess: async () => {
@@ -89,11 +106,16 @@ export const useActivities = () => {
     );
 
     // funkce useActivities vrátí proměnné s
-    // 1) aktuálními aktivitami, resp. stavem HTTP GET volání
-    // 2) mutation tool objekt, který umožňuje zavolat mutate, mutateAsync
+    // 1) všemi aktivitami, resp. stavem HTTP GET volání
+    // 2) aktivitou dle id, resp. stavem HTTP GET s /:id
+    // 3) mutation tool objekt, který umožňuje zavolat mutate, mutateAsync
     return {
         activities,
-        isPending,
+        activitiesPending,
+
+        activity,
+        activityPending,
+
         updateActivityTool,
         createActivityTool,
         deleteActivityTool

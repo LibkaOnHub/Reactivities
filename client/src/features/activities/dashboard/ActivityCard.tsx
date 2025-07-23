@@ -1,12 +1,12 @@
 ﻿import { Box, Button, Card, CardActions, CardContent, Chip, Typography } from "@mui/material";
 import { useActivities } from "../../../lib/hooks/useActivities";
+import { NavLink } from "react-router";
 
 type Props = {
     activity: Activity;
-    selectActivity: (id: string) => void;
 }
 
-export default function ActivityCard({ activity, selectActivity }: Props) {
+export default function ActivityCard({ activity }: Props) {
 
     // získáme objekt na provedení delete mutace z našeho useActivities hook
     const { deleteActivityTool } = useActivities();
@@ -41,9 +41,10 @@ export default function ActivityCard({ activity, selectActivity }: Props) {
                 <Box display="flex" gap={3}>
 
                     <Button
+                        component={NavLink}
+                        to={`/activities/${activity.id}`}
                         size="medium"
                         variant="contained"
-                        onClick={() => selectActivity(activity.id)}
                     >
                         View
                     </Button>

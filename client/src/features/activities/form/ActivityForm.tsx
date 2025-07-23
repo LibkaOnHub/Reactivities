@@ -2,22 +2,22 @@
 import type { FormEvent } from "react";
 import { useActivities } from "../../../lib/hooks/useActivities";
 import { v4 as uuidv4 } from 'uuid';
+import { useNavigate, useParams } from "react-router";
 
-type Props = {
-    selectedActivity?: Activity;
-    closeForm: () => void
-}
+export function ActivityForm() {
 
-export function ActivityForm({ selectedActivity, closeForm }: Props) {
+    // budeme potřebovat na přesměrování po uložení
+    const navigateTool = useNavigate();
 
-    console.log(`ActivityForm loaded with activity.id ${selectedActivity?.id}`)
+    // získáme id aktivity z query string
+    const { id } = useParams();
+
+    console.log(`ActivityForm opened with id from query string: ${id}`);
 
     // pomocí hook useActivities získáme aktuální aktivity, resp. zvolenou a objekty na mutaci
-    const { activities, isPending, updateActivityTool, createActivityTool } = useActivities();
+    const { activity, activityPending, updateActivityTool, createActivityTool } = useActivities(id);
 
-    const activity = activities?.find(item => item.id === selectedActivity?.id)
-
-    if (isPending) return <Typography>Loading...</Typography>
+    if (id && activityPending) return <Typography>Loading...</Typography>
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         console.log(`handle submit called with activity.id: ${activity?.id}`);
@@ -48,15 +48,19 @@ export function ActivityForm({ selectedActivity, closeForm }: Props) {
             // zavoláme hook s React Query a spustíme mutaci (HTTP PUT)
             await updateActivityTool.mutateAsync(activityFromForm);
 
-            // zavoláme funkci v App komponentě na změnu stavu editace
-            closeForm();
+            // po aktualizaci přesměrujeme na detail aktivity
+            navigateTool(`/activities/${activity.id}`);
         }
         else {
             // zavoláme hook s React Query a spustíme mutaci (HTTP POST)
-            await createActivityTool.mutateAsync(activityFromForm);
-
-            // zavoláme funkci v App komponentě na změnu stavu editace
-            closeForm();
+            await createActivityTool.mutate(
+                activityFromForm,
+                {
+                    onSuccess: (id) => {
+                        navigateTool(`/activities/${id}`)
+                    }
+                }
+            );
         }
     }
 
@@ -64,7 +68,9 @@ export function ActivityForm({ selectedActivity, closeForm }: Props) {
         <Paper sx={{ borderRadius: 3, padding: 3 }}>
 
             <Typography variant="h5" gutterBottom color="primary">
-                Create activity
+
+                {activity ? "Edit activity" : "Create activity"}
+
             </Typography>
 
             <Box
@@ -99,7 +105,6 @@ export function ActivityForm({ selectedActivity, closeForm }: Props) {
 
                     <Button
                         color="inherit"
-                        onClick={closeForm}
                     >
                         Cancel
                     </Button>
