@@ -1,21 +1,35 @@
 ﻿import { Box, Container, CssBaseline } from "@mui/material";
 import NavBar from "./NavBar";
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
+import HomePage from "../../features/home/HomePage";
 
 function App() {
+
+    const location = useLocation();
 
     return (
         <Box sx={{ bgcolor: '#eeeeee', minHeight: "100vh" }}>
 
             <CssBaseline />
 
-            <NavBar />
+            {
+                // pokud jsme na výchozí adrese bez ničeho, tak zobrazíme samotnou komponentu HomePage
+                // jinak zobrazíme NavBar a komponentu v Outlet dle cesty (routing)
 
-            <Container maxWidth="xl" sx={{ mt: 3 }}>
+                location.pathname === "/"
+                    ? <HomePage />
+                    : (
+                        <>
+                            <NavBar />
 
-                <Outlet />
+                            <Container maxWidth="xl" sx={{ mt: 3 }}>
 
-            </Container>
+                                <Outlet />
+
+                            </Container>
+                        </>
+                    )
+            }
 
         </Box>
     )
