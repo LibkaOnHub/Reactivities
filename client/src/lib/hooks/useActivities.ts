@@ -1,5 +1,6 @@
 ﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import agent from "../api/agent";
+import { useLocation } from "react-router";
 
 // hook bude vlastně exportovaná funkce (pouze TS) vracející několik proměnných (výsledek GET a mutation tool)
 
@@ -11,6 +12,8 @@ export const useActivities = (id?: string) => {
     // - vrátí proměnnou s jednou aktivitou dle id
     // - vrátí proměnnou s "mutation tool" objektem na provedení update (HTTP PUT)
     // - vrátí proměnnou s "mutation tool" objektem na provedení create (HTTP POST)
+
+    const location = useLocation();
 
     // získání dat o všech aktivitách z API pomocí React Query funkce useQuery
     const { data: activities, isPending: activitiesPending } = useQuery( // z výsledku volání uložíme vybrané vlastnosti
@@ -26,7 +29,11 @@ export const useActivities = (id?: string) => {
                 const response = await agent.get<Activity[]>("/activities"); // HTTP GET
 
                 return response.data;
-            }
+            },
+
+            staleTime: 100, // až po tomto čase budou data označena "stale" (zneplatní se cache)
+
+            enabled: !id && location.pathname == "/activities" // pokud není id a jsme na cestě pro všechny aktivity
         }
     );
 

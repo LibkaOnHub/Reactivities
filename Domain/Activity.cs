@@ -2,7 +2,7 @@
 {
     public class Activity
     {
-        // pozor, string je referennční typ (může být null, ale není tak označen),
+        // pozor, string je referenční typ (může být null, ale není tak označen),
         // tj. řekneme .Net, že je required, aby a nemá být opravdu null
 
         // vlastnost Id je automaticky PK (jinak je nutné dát [Key]

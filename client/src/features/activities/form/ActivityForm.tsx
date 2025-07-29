@@ -4,7 +4,7 @@ import { useActivities } from "../../../lib/hooks/useActivities";
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate, useParams } from "react-router";
 
-export function ActivityForm() {
+export default function ActivityForm() {
 
     // budeme potřebovat na přesměrování po uložení
     const navigateTool = useNavigate();
