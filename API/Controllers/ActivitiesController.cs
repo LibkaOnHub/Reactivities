@@ -1,4 +1,5 @@
 ﻿using Application.Activities.Commands;
+using Application.Activities.DTOs;
 using Domain;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,51 +28,57 @@ namespace API.Controllers
             var query = new Application.Activities.Queries.GetActivityDetails.Query { Id = id };
 
             // CQRS query zpracuje IMediator.Send (zvolí handler podle vstupního a výstupního typu)
-            return await Mediator.Send(query); // pro CQRS pattern
+            // odpověď z handleru vrátí aplikační logika v našem objektu Result, který obsahuje odpověď, případnou chybu atd.
+            var result = await Mediator.Send(query); // pro CQRS pattern
+
+            return HandleResult(result);
         }
 
         [HttpPost]
-        public async Task<ActionResult<string>> CreateActivity(Activity activity)
+        public async Task<ActionResult<string>> CreateActivity(CreateActivityDto createActivityDto)
         {
             // CQRS mediator pattern: command/query (MediatR.IRequest) -> IMediator.Send -> IMediatR.Handler
 
             // CQRS command
             var command = new CreateActivity.Command
             {
-                Activity = activity
+                CreateActivityDto = createActivityDto
             };
 
             // CQRS command zpracuje Mediator.Send (zvolí handler podle vstupního a výstupního typu)
-            return await Mediator.Send(command);
+            var result = await Mediator.Send(command);
+
+            return HandleResult(result);
         }
 
         [HttpPut]
-        public async Task<ActionResult> UpdateActivity(Activity activity) // nevracíme žádný typ
+        public async Task<ActionResult> EditActivity(EditActivityDto editActivityDto) // nevracíme žádný typ
         {
             // CQRS mediator pattern: command/query (MediatR.IRequest) -> IMediator.Send -> IMediatR.Handler
 
             // CQRS command
             var command = new EditActivity.Command
             {
-                Activity = activity
+                EditActivityDto = editActivityDto
             };
 
             // CQRS command zpracuje Mediator.Send (zvolí handler podle vstupního a výstupního typu)
-            await Mediator.Send(command); // pro CQRS pattern, ale bez await, protože nečekáme na výsledek
+            var result = await Mediator.Send(command); // pro CQRS pattern, ale bez await, protože nečekáme na výsledek
 
-            return NoContent(); // vrátíme 204 No Content
+            return HandleResult(result);
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteActivity(string id)
         {
-            var command = new DeleteActivity.Command { 
+            var command = new DeleteActivity.Command
+            {
                 Id = id
             };
 
-            await Mediator.Send(command);
+            var result = await Mediator.Send(command);
 
-            return Ok();
+            return HandleResult(result);
         }
     }
 }

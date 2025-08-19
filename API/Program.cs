@@ -2,6 +2,9 @@
 using Application.Core;
 using Microsoft.EntityFrameworkCore;
 using Persistence;
+using FluentValidation;
+using Application.Activities.Validators;
+using API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,12 +20,18 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 );
 
 builder.Services.AddMediatR(cfg =>
-    cfg.RegisterServicesFromAssemblyContaining<GetActivityList.Handler>() // MediatR bude hledat handlery naší třídě
-);
+{
+    cfg.RegisterServicesFromAssemblyContaining<GetActivityList.Handler>(); // MediatR bude hledat handlery v naší třídě
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>)); // MediatR bude volat validátory podle typu
+});
 
 builder.Services.AddSwaggerGen(); // Required for Swagger
 
 builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfiles>()); // profil k auto mapperu
+
+builder.Services.AddValidatorsFromAssemblyContaining<CreateActivityValidator>(); // zapnutí FluentValidation
+
+builder.Services.AddTransient<ExceptionMiddleware>(); // přidání middleware pro zpracování requestu, resp. validace
 
 var app = builder.Build();
 
@@ -33,6 +42,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.MapControllers();
 

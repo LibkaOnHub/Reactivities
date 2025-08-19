@@ -1,7 +1,8 @@
 ﻿using MediatR;
 using Persistence;
-using Domain;
 using AutoMapper;
+using Application.Core;
+using Application.Activities.DTOs;
 
 namespace Application.Activities.Commands
 {
@@ -13,26 +14,37 @@ namespace Application.Activities.Commands
         // ve třídě budou dvě vlastnosti, resp. třídy (command a handler)
 
         // 1) Command (MediatR.IRequest) - vstupní data pro editaci aktivity (DTO, stačí i record)
-        public class Command : IRequest // bez výstupního typu
+        public class Command : IRequest<Result<Unit>> // bez výstupního typu, resp. náš typ Result vracející Unit (void)
         {
-            public required Activity Activity { get; set; }
+            public required EditActivityDto EditActivityDto { get; set; }
         }
 
         // 2) Handler (MediatR.IRequestHandler) - zpracování commandu
-        public class Handler(AppDbContext context, IMapper mapper) : IRequestHandler<Command> // bez výstupního typu
+        public class Handler(AppDbContext context, IMapper mapper) : IRequestHandler<Command, Result<Unit>> // výstupní typ na náš typ Result s návratovou hodnotou Unit (void)
         {
-            // task bez výstupního typu
-            async Task IRequestHandler<Command>.Handle(Command request, CancellationToken cancellationToken)
+            // task s výstupním typem Result
+            public async Task<Result<Unit>> Handle(Command request, CancellationToken cancellationToken)
             {
                 // nejprve získáme existující aktivitu
-                var existingActivity = await context.Activities.FindAsync([request.Activity.Id], cancellationToken)
-                     ?? throw new Exception("Cannot find activity");
+                var existingActivity = await context.Activities.FindAsync([request.EditActivityDto.Id], cancellationToken);
 
-                mapper.Map(request.Activity, existingActivity); // mapování z requestu do existující aktivity
+                if (existingActivity == null)
+                {
+                    return Result<Unit>.Failure("Activity not found", 404);
+                }
 
-                // EF nepotřebuje Update, protože po FindAsync již její zmeny sleduje (je z DbSetu)
+                mapper.Map(request.EditActivityDto, existingActivity); // mapování z requestu do existující aktivity
 
-                await context.SaveChangesAsync(); // uložíme změny v tabulkách do DB
+                // EF nepotřebuje Update, protože po EF FindAsync již její změny sleduje (je z DbSetu)
+
+                var rowsAffected = await context.SaveChangesAsync() > 0; // uložíme změny v tabulkách do DB a porovnáme počet ovlivněných záznamů
+
+                if (!rowsAffected)
+                {
+                    return Result<Unit>.Failure("Failed to update the activity", 400);
+                }
+
+                return Result<Unit>.Success(Unit.Value);
             }
         }
     }

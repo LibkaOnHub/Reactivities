@@ -1,6 +1,6 @@
 ﻿namespace Application.Activities.DTOs
 {
-    public class CreateActivityDto
+    public class CreateActivityDto : BaseActivityDto
     {
     }
 }

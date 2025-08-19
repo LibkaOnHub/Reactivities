@@ -1,6 +1,9 @@
-﻿using MediatR;
-using Persistence;
+﻿using Application.Activities.DTOs;
+using Application.Core;
+using AutoMapper;
 using Domain;
+using MediatR;
+using Persistence;
 
 namespace Application.Activities.Commands
 {
@@ -12,21 +15,28 @@ namespace Application.Activities.Commands
         // ve třídě budou dvě vlastnosti, resp. třídy (command a handler)
 
         // 1) Command (MediatR.IRequest) - vstupní data pro vytvoření aktivity (DTO, stačí i record))
-        public class Command : IRequest<string>
+        public class Command : IRequest<Result<string>> // výstupem je náš objekt Result s odpovědí jako string
         {
-            public required Activity Activity { get; set; }
+            public required CreateActivityDto CreateActivityDto { get; set; }
         }
 
         // 2) Handler (MediatR.IRequestHandler) - zpracování commandu
-        public class Handler(AppDbContext context) : IRequestHandler<Command, string>
+        public class Handler(AppDbContext context, IMapper mapper) : IRequestHandler<Command, Result<string>>
         {
-            async Task<string> IRequestHandler<Command, string>.Handle(Command request, CancellationToken cancellationToken)
+            public async Task<Result<string>> Handle(Command request, CancellationToken cancellationToken)
             {
-                context.Activities.Add(request.Activity); // přidáme aktivitu do DbSetu
+                var activity = mapper.Map<Activity>(request.CreateActivityDto);
 
-                await context.SaveChangesAsync();
+                context.Activities.Add(activity); // přidáme aktivitu do DbSetu
 
-                return request.Activity.Id;
+                var result = await context.SaveChangesAsync() > 0; // uložení a kontrola
+
+                if (!result)
+                {
+                    return Result<string>.Failure("Failed to create the activity", 400);
+                }
+
+                return Result<string>.Success(activity.Id);
             }
         }
     }

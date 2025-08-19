@@ -46,6 +46,8 @@ export default function ActivityForm() {
 
         if (activity) {
             // zavoláme hook s React Query a spustíme mutaci (HTTP PUT)
+            console.log("an existing activity, update mutation will be called");
+
             await updateActivityTool.mutateAsync(activityFromForm);
 
             // po aktualizaci přesměrujeme na detail aktivity
@@ -53,11 +55,17 @@ export default function ActivityForm() {
         }
         else {
             // zavoláme hook s React Query a spustíme mutaci (HTTP POST)
+            console.log("a new activity, create mutation will be called");
+
             await createActivityTool.mutate(
                 activityFromForm,
                 {
-                    onSuccess: (id) => {
-                        navigateTool(`/activities/${id}`)
+                    onSuccess: (newId) => {
+                        console.log("The create mutation returned:", newId);
+                        navigateTool(`/activities/${newId}`)
+                    },
+                    onError: (error) => {
+                        console.log("Error during activity creation:", error)
                     }
                 }
             );
