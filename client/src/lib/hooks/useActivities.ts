@@ -61,6 +61,8 @@ export const useActivities = (id?: string) => {
         {
             // funkce zajišťující změnu aktivity
             mutationFn: async (activity: Activity) => {
+                console.log("updateActivityTool mutation called with activity:", activity);
+
                 await agent.put("/activities", activity) // HTTP PUT
             },
 
@@ -80,6 +82,8 @@ export const useActivities = (id?: string) => {
         {
             // funkce zajišťující vytvoření aktivity
             mutationFn: async (activity: Activity) => {
+                console.log("createActivityTool mutation called with activity:", activity);
+
                 const response = await agent.post("/activities", activity) // HTTP POST
 
                 return response.data

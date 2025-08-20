@@ -1,10 +1,26 @@
 ﻿import { Box, Button, Paper, TextField, Typography } from "@mui/material";
-import type { FormEvent } from "react";
 import { useActivities } from "../../../lib/hooks/useActivities";
+import { useParams, useNavigate } from "react-router";
+import { useForm } from "react-hook-form";
+import { useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { activitySchema, type ActivitySchema } from "../../../lib/schemas/activitySchema"; // pozor, druhá položka je type
 import { v4 as uuidv4 } from 'uuid';
-import { useNavigate, useParams } from "react-router";
 
 export default function ActivityForm() {
+
+    // react-hook-form hook obsahuje hook useForm
+    // - odeslání formuláře zajišťuje jeho metoda handleSubmit
+    // - input prvky mají atribut register (nahrazuje name)
+    // - nastavení validačního schéma (typ samotný pro kompilaci a proměnná pro runtime validaci)
+    const { register, reset, handleSubmit, formState: { errors } } = useForm<ActivitySchema>(
+        {
+            // přidání zod resolveru pro validaci 
+            // pozor: proměnná (instance) pro runtime validaci (v useForm je naopak typ pro kompilaci))
+            resolver: zodResolver(activitySchema),
+            mode: "onTouched" // bude se validovat už při opuštění pole (místo až při submit)
+        }
+    );
 
     // budeme potřebovat na přesměrování po uložení
     const navigateTool = useNavigate();
@@ -17,58 +33,58 @@ export default function ActivityForm() {
     // pomocí hook useActivities získáme aktuální aktivity, resp. zvolenou a objekty na mutaci
     const { activity, activityPending, updateActivityTool, createActivityTool } = useActivities(id);
 
+    useEffect(
+        () => {
+            if (activity) reset(activity);
+        },
+        [activity, reset]
+    )
+
+    useEffect(
+        () => {
+            console.log("Current errors:", errors);
+        },
+        [errors]
+    );
+
     if (id && activityPending) return <Typography>Loading...</Typography>
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        console.log(`handle submit called with activity.id: ${activity?.id}`);
-        console.log(event)
+    const onSubmit = async (data: ActivitySchema) => {
+        console.log("Form submitted with data:", data);
 
-        event.preventDefault(); // potlačí se odeslání formuláře
-
-        // z události získáme slovník odesílaných dat (name / defaultValue)
-        const formData = new FormData(event.currentTarget);
-
-        let activityFromForm: Activity = {
+        const activityFromForm: Activity = {
             id: activity?.id ?? uuidv4(),
-            title: formData.get("title") as string,
-            description: formData.get("description") as string,
-            category: formData.get("category") as string,
-            date: formData.get("date") as string,
-            city: formData.get("city") as string,
-            venue: formData.get("venue") as string,
+            title: data.title,
+            description: data.description,
+            category: data.category,
+            date: data.date,
+            city: data.city,
+            venue: data.venue,
             latitude: 0,
             longitude: 0,
-            isCancelled: false
+            isCancelled: false,
         };
 
-        console.log("activity from form:");
-        console.log(activityFromForm);
+        console.log("activity from form:", activityFromForm);
 
         if (activity) {
-            // zavoláme hook s React Query a spustíme mutaci (HTTP PUT)
-            console.log("an existing activity, update mutation will be called");
+            console.log("An existing activity, update mutation will be called");
 
             await updateActivityTool.mutateAsync(activityFromForm);
 
-            // po aktualizaci přesměrujeme na detail aktivity
             navigateTool(`/activities/${activity.id}`);
-        }
-        else {
-            // zavoláme hook s React Query a spustíme mutaci (HTTP POST)
-            console.log("a new activity, create mutation will be called");
+        } else {
+            console.log("A new activity, create mutation will be called");
 
-            await createActivityTool.mutate(
-                activityFromForm,
-                {
-                    onSuccess: (newId) => {
-                        console.log("The create mutation returned:", newId);
-                        navigateTool(`/activities/${newId}`)
-                    },
-                    onError: (error) => {
-                        console.log("Error during activity creation:", error)
-                    }
-                }
-            );
+            await createActivityTool.mutate(activityFromForm, {
+                onSuccess: (newId) => {
+                    console.log("The create mutation returned:", newId);
+                    navigateTool(`/activities/${newId}`);
+                },
+                onError: (error) => {
+                    console.log("Error during create mutation:", error);
+                },
+            });
         }
     }
 
@@ -83,19 +99,39 @@ export default function ActivityForm() {
 
             <Box
                 component="form"
-                onSubmit={handleSubmit}
+                onSubmit={handleSubmit(onSubmit)}
                 display="flex"
                 flexDirection="column"
                 gap={3}
             >
 
-                <TextField name="title" label="Title" defaultValue={activity?.title} />
+                <TextField
+                    {...register("title")}
+                    label="Title"
+                    defaultValue={activity?.title}
+                    error={!!errors.title}
+                    helperText={errors.title?.message}
+                />
 
-                <TextField name="description" label="Description" multiline rows={3} defaultValue={activity?.description} />
+                <TextField
+                    {...register("description")}
+                    label="Description"
+                    multiline rows={3}
+                    defaultValue={activity?.description}
+                    error={!!errors.description}
+                    helperText={errors.description?.message}
+                />
 
-                <TextField name="category" label="Category" defaultValue={activity?.category} />
+                <TextField
+                    {...register("category")}
+                    label="Category"
+                    defaultValue={activity?.category}
+                    error={!!errors.category}
+                    helperText={errors.category?.message}
+                />
 
-                <TextField name="date"
+                <TextField
+                    {...register("date")}
                     label="Date"
                     type="date"
                     defaultValue={
@@ -103,11 +139,25 @@ export default function ActivityForm() {
                             ? new Date(activity.date).toISOString().split("T")[0]
                             : new Date().toISOString().split('T')[0]
                     }
+                    error={!!errors.date}
+                    helperText={errors.date?.message}
                 />
 
-                <TextField name="city" label="City" defaultValue={activity?.city} />
+                <TextField
+                    {...register("city")}
+                    label="City"
+                    defaultValue={activity?.city}
+                    error={!!errors.city}
+                    helperText={errors.city?.message}
+                />
 
-                <TextField name="venue" label="Venue" defaultValue={activity?.venue} />
+                <TextField
+                    {...register("venue")}
+                    label="Venue"
+                    defaultValue={activity?.venue}
+                    error={!!errors.venue}
+                    helperText={errors.venue?.message}
+                />
 
                 <Box display="flex" justifyContent="end" gap={3}>
 
