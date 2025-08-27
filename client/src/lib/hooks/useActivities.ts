@@ -1,6 +1,7 @@
 ﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import agent from "../api/agent";
 import { useLocation } from "react-router";
+import { type Activity } from "../types";
 
 // hook bude vlastně exportovaná funkce (pouze TS) vracející několik proměnných (výsledek GET a mutation tool)
 

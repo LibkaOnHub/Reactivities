@@ -1,4 +1,4 @@
-﻿import z from "zod";
+﻿import { z } from "zod";
 
 export const activitySchema = z.object(
     {
@@ -30,26 +30,27 @@ export const activitySchema = z.object(
                 }
             ),
         date: z
-            .string()
-            .nonempty(
+            .coerce.date(
                 {
                     message: "Date is required"
                 }
             ),
-        city: z
-            .string()
-            .nonempty(
-                {
-                    message: "City is required"
-                }
-            ),
-        venue: z
-            .string()
-            .nonempty(
-                {
-                    message: "Venue is required"
-                }
-            ),
+        location: z.object({
+            venue: z
+                .string()
+                .nonempty(
+                    {
+                        message: "Venue is required"
+                    }
+                ),
+            city: z
+                .string()
+                .optional(),
+            latitude: z
+                .coerce.number(),
+            longitude: z
+                .coerce.number(),
+        })
     }
 )
 

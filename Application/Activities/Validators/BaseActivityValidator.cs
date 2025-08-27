@@ -3,7 +3,7 @@ using FluentValidation;
 
 namespace Application.Activities.Validators
 {
-    public class BaseActivityValidator<T, TDto> : AbstractValidator<T> where TDto: BaseActivityDto
+    public class BaseActivityValidator<T, TDto> : AbstractValidator<T> where TDto : BaseActivityDto
     {
         public BaseActivityValidator(Func<T, TDto> selector)
         {
@@ -24,7 +24,7 @@ namespace Application.Activities.Validators
                 .NotEmpty().WithMessage("Category is required");
 
             RuleFor(x => selector(x).City)
-                .NotEmpty().WithMessage("City is required")
+                //.NotEmpty().WithMessage("City is required")
                 .MaximumLength(100).WithMessage("City must not exceed 100 characters");
 
             RuleFor(x => selector(x).Venue)

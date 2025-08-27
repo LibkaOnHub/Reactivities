@@ -17,6 +17,9 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-router';
 import { StoreContext, store } from './lib/stores/store';
 
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+
 // klient pro React query
 const queryClient = new QueryClient();
 
@@ -25,19 +28,23 @@ const queryClient = new QueryClient();
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
 
-        <StoreContext.Provider value={store}>
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
 
-            <QueryClientProvider client={queryClient}>
+            <StoreContext.Provider value={store}>
 
-                <ReactQueryDevtools />
+                <QueryClientProvider client={queryClient}>
 
-                <ToastContainer position="bottom-right" hideProgressBar theme="colored" />
+                    <ReactQueryDevtools />
 
-                <RouterProvider router={router} />
+                    <ToastContainer position="bottom-right" hideProgressBar theme="colored" />
 
-            </QueryClientProvider>
+                    <RouterProvider router={router} />
 
-        </StoreContext.Provider>
+                </QueryClientProvider>
+
+            </StoreContext.Provider>
+
+        </LocalizationProvider>
 
     </StrictMode>
 )

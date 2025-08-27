@@ -1,11 +1,23 @@
-﻿import { Box, Button, Paper, TextField, Typography } from "@mui/material";
+﻿import { Box, Button, Paper, Typography } from "@mui/material";
 import { useActivities } from "../../../lib/hooks/useActivities";
 import { useParams, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { useEffect } from "react";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { activitySchema, type ActivitySchema } from "../../../lib/schemas/activitySchema"; // pozor, druhá položka je type
+
 import { v4 as uuidv4 } from 'uuid';
+
+import TextInput from "../../../app/shared/components/TextInput";
+import SelectInput from "../../../app/shared/components/SelectInput";
+import DateTimeInput from "../../../app/shared/components/DateTimeInput";
+
+import { categoryOptions } from "./categoryOptions";
+
+import LocationInput from "../../../app/shared/components/LocationInput";
+
+import { type Activity } from "../../../lib/types";
 
 export default function ActivityForm() {
 
@@ -13,12 +25,24 @@ export default function ActivityForm() {
     // - odeslání formuláře zajišťuje jeho metoda handleSubmit
     // - input prvky mají atribut register (nahrazuje name)
     // - nastavení validačního schéma (typ samotný pro kompilaci a proměnná pro runtime validaci)
-    const { register, reset, handleSubmit, formState: { errors } } = useForm<ActivitySchema>(
+    const { control, reset, handleSubmit } = useForm(
         {
             // přidání zod resolveru pro validaci 
             // pozor: proměnná (instance) pro runtime validaci (v useForm je naopak typ pro kompilaci))
             resolver: zodResolver(activitySchema),
-            mode: "onTouched" // bude se validovat už při opuštění pole (místo až při submit)
+            mode: "onTouched", // bude se validovat už při opuštění pole (místo až při submit)
+            defaultValues: {
+                title: "",
+                description: "",
+                category: "",
+                date: new Date(),
+                location: {
+                    venue: "",
+                    city: "",
+                    latitude: 0,
+                    longitude: 0,
+                }
+            }
         }
     );
 
@@ -33,58 +57,89 @@ export default function ActivityForm() {
     // pomocí hook useActivities získáme aktuální aktivity, resp. zvolenou a objekty na mutaci
     const { activity, activityPending, updateActivityTool, createActivityTool } = useActivities(id);
 
+    // pokud se změní activity (načtení z API), tak se naplní react-hook-form formulář daty
+    // react-hook-form metoda reset složí nejen k vyčištění hodnot, ale i k naplnění dat
+    // a pracuje s activitySchema
     useEffect(
         () => {
-            if (activity) reset(activity);
-        },
-        [activity, reset]
-    )
+            if (activity) {
+                // pomocí useForm.reset naplníme react-hook-form formulář daty
+                // pozor, activity je typu Activity (data z BE), ale formulář pracuje s ActivitySchema (zod schema)
 
-    useEffect(
-        () => {
-            console.log("Current errors:", errors);
+                console.log("Resetting form with activity:", activity);
+
+                const dataForForm: ActivitySchema = {
+                    ...activity,
+                    location: {
+                        venue: activity.venue,
+                        city: activity.city ?? "",
+                        latitude: activity.latitude,
+                        longitude: activity.longitude,
+                    }
+                }
+
+                reset(dataForForm);
+            }
         },
-        [errors]
-    );
+        [activity, reset] // při změně aktivity se nastaví data v react-hook-form formuláři
+    )
 
     if (id && activityPending) return <Typography>Loading...</Typography>
 
-    const onSubmit = async (data: ActivitySchema) => {
-        console.log("Form submitted with data:", data);
+    const onSubmit = async (formData: ActivitySchema) => {
 
-        const activityFromForm: Activity = {
+        // pozor, react-hook-form pracuje s ActivitySchema (model pro zod validaci a pole formuláře)
+        // kdežto na API posíláme model Activity (plochá struktura odpovídající BE BaseActivityDto)
+
+        console.log("Form data (ActivitySchema):", formData);
+
+        // nyní musíme transformovat data z formuláře (ActivitySchema s vnořeným objektem location)
+        // na data pro API (Activity model s plochou strukturou, který odpovídá DTO na straně API))
+
+        // získáme zvlášť location objekt a zbytek dat z ActivitySchema
+        // (location objekt je v ActivitySchema vnořený, kdežto v Activity jsou jeho vlastnosti na stejné úrovni jako ostatní))
+        const { location, ...rest } = formData;
+
+        // a nyní složíme data z formuláře (activitySchema) do ploché struktury 
+        // odpovídající modelu Activity(data pro API)
+
+        const dataForApi: Activity = {
+            ...rest,
+            ...location, // vlastnosti z location budou na stejné úrovni jako ostatní
+            city: location.city ?? "",
             id: activity?.id ?? uuidv4(),
-            title: data.title,
-            description: data.description,
-            category: data.category,
-            date: data.date,
-            city: data.city,
-            venue: data.venue,
-            latitude: 0,
-            longitude: 0,
-            isCancelled: false,
-        };
+            isCancelled: activity?.isCancelled ?? false,
+        }
 
-        console.log("activity from form:", activityFromForm);
+        console.log("Data for API (Activity):", dataForApi);
 
-        if (activity) {
-            console.log("An existing activity, update mutation will be called");
+        try {
+            if (activity) {
+                console.log("An existing activity, update mutation will be called", dataForApi);
 
-            await updateActivityTool.mutateAsync(activityFromForm);
+                //updateActivityTool.mutateAsync({ ...activity, ...dataForApi });
+                updateActivityTool.mutateAsync(dataForApi);
 
-            navigateTool(`/activities/${activity.id}`);
-        } else {
-            console.log("A new activity, create mutation will be called");
+                navigateTool(`/activities/${activity.id}`);
+            }
+            else {
+                console.log("A new activity, create mutation will be called", dataForApi);
 
-            await createActivityTool.mutate(activityFromForm, {
-                onSuccess: (newId) => {
-                    console.log("The create mutation returned:", newId);
-                    navigateTool(`/activities/${newId}`);
-                },
-                onError: (error) => {
-                    console.log("Error during create mutation:", error);
-                },
-            });
+                createActivityTool.mutate(
+                    dataForApi,
+                    {
+                        onSuccess: (newId) => {
+                            console.log("The create mutation returned:", newId);
+                            navigateTool(`/activities/${newId}`);
+                        },
+                        onError: (error) => {
+                            console.log("Error during create mutation:", error);
+                        },
+                    });
+            }
+        }
+        catch (error) {
+            console.log("Error during form submission:", error);
         }
     }
 
@@ -105,58 +160,36 @@ export default function ActivityForm() {
                 gap={3}
             >
 
-                <TextField
-                    {...register("title")}
+                <TextInput
+                    control={control}
+                    name="title"
                     label="Title"
-                    defaultValue={activity?.title}
-                    error={!!errors.title}
-                    helperText={errors.title?.message}
                 />
 
-                <TextField
-                    {...register("description")}
+                <TextInput
+                    control={control}
+                    name="description"
                     label="Description"
                     multiline rows={3}
-                    defaultValue={activity?.description}
-                    error={!!errors.description}
-                    helperText={errors.description?.message}
                 />
 
-                <TextField
-                    {...register("category")}
+                <SelectInput
+                    control={control}
+                    name="category"
                     label="Category"
-                    defaultValue={activity?.category}
-                    error={!!errors.category}
-                    helperText={errors.category?.message}
+                    items={categoryOptions}
                 />
 
-                <TextField
-                    {...register("date")}
+                <DateTimeInput
+                    control={control}
+                    name="date"
                     label="Date"
-                    type="date"
-                    defaultValue={
-                        activity?.date
-                            ? new Date(activity.date).toISOString().split("T")[0]
-                            : new Date().toISOString().split('T')[0]
-                    }
-                    error={!!errors.date}
-                    helperText={errors.date?.message}
                 />
 
-                <TextField
-                    {...register("city")}
-                    label="City"
-                    defaultValue={activity?.city}
-                    error={!!errors.city}
-                    helperText={errors.city?.message}
-                />
-
-                <TextField
-                    {...register("venue")}
-                    label="Venue"
-                    defaultValue={activity?.venue}
-                    error={!!errors.venue}
-                    helperText={errors.venue?.message}
+                <LocationInput
+                    control={control}
+                    name="location"
+                    label='Enter the location'
                 />
 
                 <Box display="flex" justifyContent="end" gap={3}>
