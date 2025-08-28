@@ -1,12 +1,47 @@
 ﻿using Domain;
+using Microsoft.AspNetCore.Identity;
 
 namespace Persistence
 {
     public class DbInitializer
     {
         // statická metoda stačí - není třeba vytvářet instanci
-        public static async Task SeedData(AppDbContext context)
+        // injektujeme AppDbContext (nyní IdentityContext) a UserManager (v aplikaci je přidaná ASP.NET Identity)
+        public static async Task SeedData(AppDbContext context, UserManager<User> userManager)
         {
+            // 1) vložení uživatelů (ASP.NET Identity je uloží do AspNetUsers)
+            if (!userManager.Users.Any()) // pokud nejsou v DB žádní uživatelé
+            {
+                var users = new List<User>
+                {
+                    new() {
+                        DisplayName = "Bob",
+                        UserName = "bob@test.com", // nějaká chyba v ASP.NET Identity (do UserName se dává stejně e-mail), aby prošla autentikace
+                        Email = "bob@test.com"
+                    },
+                    new() {
+                        DisplayName = "Tom",
+                        UserName = "tom@test.com",
+                        Email = "tom@test.com"
+                    },
+                    new() {
+                        DisplayName = "Jane",
+                        UserName = "jane@test.com",
+                        Email = "jane@test.com"
+                    }
+                };
+
+                foreach (var user in users)
+                {
+                    // přidáme uživatele pomocí ASP.NET Identity UserManager
+                    // pozor, heslo musí být komplexní a mít aspoň 6 znaků
+                    await userManager.CreateAsync(user, "Password*1");
+
+                    // není třeba volat SaveChanges (ASP.NET Identity UserManager již udělá)
+                }
+            }
+
+            // 2) vložení aktivit (tabulka Activities)
             if (context.Activities.Any()) return; // tabulka je již naplněna
 
             // připravíme kolekci aktivit k vložení do tabulky

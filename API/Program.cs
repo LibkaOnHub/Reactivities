@@ -5,6 +5,8 @@ using Persistence;
 using FluentValidation;
 using Application.Activities.Validators;
 using API.Middleware;
+using Domain;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +14,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 // builder.Services.Add přidává typy do DI kontejneru
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    var authorizationPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser() // všechny endpointy budou vyžadovat autentikaci (jako by měly [Authorize])
+        .Build();
+
+    // do endpointů přidáme globálně filtr s naší autentikační politikou
+    options.Filters.Add(new Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter(authorizationPolicy));
+});
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")
@@ -33,6 +43,15 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreateActivityValidator>();
 
 builder.Services.AddTransient<ExceptionMiddleware>(); // přidání middleware pro zpracování requestu, resp. validace
 
+// přidáme API pro správu identit (ASP.NET Core Identity)
+builder.Services.AddIdentityApiEndpoints<User>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+    }
+)
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>();
+
 var app = builder.Build();
 
 // 2) nakonfigurujeme HTTP request pipeline
@@ -45,7 +64,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseMiddleware<ExceptionMiddleware>();
 
+// zapnutí ASP.NET Core Identity
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
+
+app.MapGroup("api").MapIdentityApi<User>(); // přidání endpointů pro správu identit pod cestu /api (např. /api/login)
 
 // 3) činnosti po spuštění aplikace mimo HTTP request
 
@@ -53,6 +78,7 @@ app.MapControllers();
 app.UseCors(option =>
     option.AllowAnyHeader()
     .AllowAnyMethod() // všechny HTTP metody (GET, POST, PUT, DELETE atd.)
+    .AllowCredentials() // povolení odesílání autentikačních cookies
     .WithOrigins("http://localhost:3000", "https://localhost:3000") // povolené domény pro přístup k API
 );
 
@@ -69,19 +95,19 @@ try
 {
     // získání instance z DI, resp. ServiceProvider, kde je po spuštění připravená
     var appDbContext = serviceProviderInScope.GetRequiredService<AppDbContext>();
+    var userManager = serviceProviderInScope.GetRequiredService<UserManager<User>>();
 
     // provede "dotnet ef database update"
     await appDbContext.Database.MigrateAsync();
 
     // naplní prázdnou databázi testovacími daty
-    await DbInitializer.SeedData(appDbContext);
-
+    await DbInitializer.SeedData(appDbContext, userManager);
 }
-catch (Exception)
+catch (Exception ex)
 {
     // získáme instanci logger (required = exception při neúspěchu)
     var logger = serviceProviderInScope.GetRequiredService<ILogger<Program>>();
-    logger.LogError("An error occurred during migration or seeding the database");
+    logger.LogError(ex, "An error occurred during migration or seeding the database");
 }
 
 app.Run();
