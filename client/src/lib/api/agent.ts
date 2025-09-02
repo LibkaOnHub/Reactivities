@@ -8,7 +8,8 @@ console.log(`base url from environment: ${import.meta.env.VITE_API_URL}`)
 // funkce axios.create vytvoří Axios instanci s nastavením
 const agent = axios.create(
     {
-        baseURL: import.meta.env.VITE_API_URL
+        baseURL: import.meta.env.VITE_API_URL, // základní URL adresa pro naše API
+        withCredentials: true, // klient bude posílat autentikační cookies na server
     }
 );
 
@@ -51,6 +52,8 @@ agent.interceptors.response.use(
 
         switch (status) {
             case 400:
+                console.log("interceptor caught 400 errors", data.errors);
+
                 if (data.errors) {
                     // data obsahují výsledek validace
                     const modelStateErrors = [];
@@ -63,8 +66,11 @@ agent.interceptors.response.use(
 
                     console.log("modelStateErrors: " + modelStateErrors);
 
-                    //throw modelStateErrors.flat();
-                    toast.error(modelStateErrors.toString());
+                    //toast.error(modelStateErrors.toString());
+
+                    // the React query or mutation will receive a flat array of API validation errors 
+                    // which we can turn into toasts in a component
+                    throw modelStateErrors.flat();
                 }
                 else {
                     // jiná chyba než validace

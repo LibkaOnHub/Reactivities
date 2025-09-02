@@ -4,11 +4,16 @@ import { NavLink } from "react-router";
 import MenuItemLink from "../shared/components/MenuItemLink";
 import { useStore } from "../../lib/hooks/useStore";
 import { Observer } from "mobx-react-lite";
+import { useAccount } from "../../lib/hooks/useAccount";
+import UserMenu from "../layout/UserMenu";
 
 export default function NavBar() {
 
     // náš hook useStore vrátí z React kontextu interface s MobX třídami
     const { uiStore } = useStore();
+
+    // náš hook useAccount vrátí objekt s funkcemi a proměnnými pro práci s uživatelem
+    const { currentUser } = useAccount();
 
     return (
         <Box sx={{ flexGrow: 1 }}>
@@ -49,12 +54,6 @@ export default function NavBar() {
                             </MenuItemLink>
 
                             <MenuItemLink
-                                to="/createActivity"
-                            >
-                                Create activity
-                            </MenuItemLink>
-
-                            <MenuItemLink
                                 to="/counter"
                             >
                                 Counter
@@ -68,11 +67,25 @@ export default function NavBar() {
 
                         </Box>
 
-                        <MenuItem>
+                        <Box display="flex" alignItems="center">
+                            {
+                                currentUser
+                                    ? (
+                                        <UserMenu />
+                                    )
+                                    : (
+                                        <>
+                                            <MenuItemLink to="/login">
+                                                Login
+                                            </MenuItemLink>
 
-                            User menu
-
-                        </MenuItem>
+                                            <MenuItemLink to="/register">
+                                                Register
+                                            </MenuItemLink>
+                                        </>
+                                    )
+                            }
+                        </Box>
 
                     </Toolbar>
 
@@ -81,7 +94,7 @@ export default function NavBar() {
                 <Observer>
 
                     {
-                        () => uiStore.isLoading 
+                        () => uiStore.isLoading
                             ? (
 
                                 <LinearProgress

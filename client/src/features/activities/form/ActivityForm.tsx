@@ -25,12 +25,24 @@ export default function ActivityForm() {
     // - odeslání formuláře zajišťuje jeho metoda handleSubmit
     // - input prvky mají atribut register (nahrazuje name)
     // - nastavení validačního schéma (typ samotný pro kompilaci a proměnná pro runtime validaci)
-    const { control, reset, handleSubmit } = useForm(
+
+    // vytáhneme potřebné vlastnosti, resp. funkce z react-hook-form hook
+    const {
+        control, // propojí pole na stránce (formuláři) s react-hook-form
+        reset, // naplní/resetuje formulář
+        handleSubmit // odešle data formuláře do naší funkce
+    } = useForm(
         {
-            // přidání zod resolveru pro validaci 
+            // přidání zod resolveru pro validaci
             // pozor: proměnná (instance) pro runtime validaci (v useForm je naopak typ pro kompilaci))
-            resolver: zodResolver(activitySchema),
-            mode: "onTouched", // bude se validovat už při opuštění pole (místo až při submit)
+
+            // validace pomocí zod schéma (konstanta s objektem a zod validátory pro každou vlastnost, resp. pole)
+            resolver: zodResolver(activitySchema), 
+
+            // bude se validovat už při opuštění pole (místo až při submit)
+            mode: "onTouched", 
+
+            // výchozí hodnoty formuláře (pro vytvoření nové aktivity a zahájení validace)
             defaultValues: {
                 title: "",
                 description: "",
@@ -47,7 +59,7 @@ export default function ActivityForm() {
     );
 
     // budeme potřebovat na přesměrování po uložení
-    const navigateTool = useNavigate();
+    const navigate = useNavigate();
 
     // získáme id aktivity z query string
     const { id } = useParams();
@@ -86,7 +98,7 @@ export default function ActivityForm() {
 
     if (id && activityPending) return <Typography>Loading...</Typography>
 
-    const onSubmit = async (formData: ActivitySchema) => {
+    const submitForm = async (formData: ActivitySchema) => {
 
         // pozor, react-hook-form pracuje s ActivitySchema (model pro zod validaci a pole formuláře)
         // kdežto na API posíláme model Activity (plochá struktura odpovídající BE BaseActivityDto)
@@ -120,7 +132,7 @@ export default function ActivityForm() {
                 //updateActivityTool.mutateAsync({ ...activity, ...dataForApi });
                 updateActivityTool.mutateAsync(dataForApi);
 
-                navigateTool(`/activities/${activity.id}`);
+                navigate(`/activities/${activity.id}`);
             }
             else {
                 console.log("A new activity, create mutation will be called", dataForApi);
@@ -130,7 +142,7 @@ export default function ActivityForm() {
                     {
                         onSuccess: (newId) => {
                             console.log("The create mutation returned:", newId);
-                            navigateTool(`/activities/${newId}`);
+                            navigate(`/activities/${newId}`);
                         },
                         onError: (error) => {
                             console.log("Error during create mutation:", error);
@@ -154,7 +166,7 @@ export default function ActivityForm() {
 
             <Box
                 component="form"
-                onSubmit={handleSubmit(onSubmit)}
+                onSubmit={handleSubmit(submitForm)}
                 display="flex"
                 flexDirection="column"
                 gap={3}

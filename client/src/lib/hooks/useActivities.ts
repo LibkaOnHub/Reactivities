@@ -1,7 +1,8 @@
 ﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import agent from "../api/agent";
 import { useLocation } from "react-router";
-import { type Activity } from "../types";
+import { type Activity } from "../types/index";
+import { useAccount } from "../hooks/useAccount"
 
 // hook bude vlastně exportovaná funkce (pouze TS) vracející několik proměnných (výsledek GET a mutation tool)
 
@@ -16,8 +17,12 @@ export const useActivities = (id?: string) => {
 
     const location = useLocation();
 
+    const { currentUser } = useAccount();
+
+    console.log("currentUser:", currentUser);
+
     // získání dat o všech aktivitách z API pomocí React Query funkce useQuery
-    const { data: activities, isPending: activitiesPending } = useQuery( // z výsledku volání uložíme vybrané vlastnosti
+    const { data: activities, isLoading: activitiesLoading } = useQuery( // z výsledku volání uložíme vybrané vlastnosti
         // konfigurace query
         {
             // uložení dat
@@ -34,7 +39,10 @@ export const useActivities = (id?: string) => {
 
             staleTime: 100, // až po tomto čase budou data označena "stale" (zneplatní se cache)
 
-            enabled: !id && location.pathname == "/activities" // pokud není id a jsme na cestě pro všechny aktivity
+            enabled:
+                !id // jen pokud není specifikováno konkrétní id (chceme vrátit všechny aktivity)
+                && location.pathname.startsWith("/activities") // pokud není id a jsme na cestě pro všechny aktivity
+                && !!currentUser // jen pokud existuje přihlášený uživatel
         }
     );
 
@@ -49,7 +57,9 @@ export const useActivities = (id?: string) => {
                 return response.data;
             },
 
-            enabled: !!id
+            enabled:
+                !!id // jen pokud je specifikováno konkrétní id
+                && !!currentUser // jen pokud existuje přihlášený uživatel
         }
     );
 
@@ -71,7 +81,7 @@ export const useActivities = (id?: string) => {
                 await queryClient.invalidateQueries(
                     // nastavení filtru
                     {
-                        queryKey: ['activities']
+                        queryKey: ["activities"]
                     }
                 )
             }
@@ -93,7 +103,7 @@ export const useActivities = (id?: string) => {
             onSuccess: async () => {
                 await queryClient.invalidateQueries(
                     {
-                        queryKey: ['activities']
+                        queryKey: ["activities"]
                     }
                 )
             }
@@ -110,7 +120,7 @@ export const useActivities = (id?: string) => {
             onSuccess: async () => {
                 await queryClient.invalidateQueries(
                     {
-                        queryKey: ['activities']
+                        queryKey: ["activities"]
                     }
                 )
             }
@@ -123,7 +133,7 @@ export const useActivities = (id?: string) => {
     // 3) mutation tool objekt, který umožňuje zavolat mutate, mutateAsync
     return {
         activities,
-        activitiesPending,
+        activitiesLoading,
 
         activity,
         activityPending,

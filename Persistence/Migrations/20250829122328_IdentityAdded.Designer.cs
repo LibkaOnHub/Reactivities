@@ -11,7 +11,7 @@ using Persistence;
 namespace Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250827174758_IdentityAdded")]
+    [Migration("20250829122328_IdentityAdded")]
     partial class IdentityAdded
     {
         /// <inheritdoc />
@@ -86,6 +86,9 @@ namespace Persistence.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("INTEGER");
